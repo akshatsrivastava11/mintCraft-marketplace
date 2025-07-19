@@ -16,6 +16,6 @@ pub mod mint_craft_marketplace {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        initialize::handler(ctx)
+        initialize_marketplace::handler(ctx)
     }
 }
