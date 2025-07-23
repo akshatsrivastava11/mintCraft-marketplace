@@ -13,10 +13,12 @@ pub struct Delist<'info>{
     )]
     pub marketplace:Account<'info,Marketplace>,
     #[account(
+        mut,
         seeds=[b"listing",marketplace.key().as_ref()],
         bump
     )]
     pub listing:Account<'info,Listing>,
+
     pub mint:Account<'info,Mint>,
     #[account(
         mut,
@@ -25,6 +27,7 @@ pub struct Delist<'info>{
     )]
     pub user_mint_ata:Account<'info,TokenAccount>,
     #[account(
+        mut,
         associated_token::mint=mint,
         associated_token::authority=listing
     )]
@@ -43,8 +46,9 @@ pub struct Delist<'info>{
 //closing the vault
 impl<'info>Delist<'info>{
     pub fn delist(&mut self,bumps:DelistBumps)->Result<()>{
-        self.transfer_back(&bumps);
-        self.close_vault(&bumps)
+        self.transfer_back(&bumps)?;
+        self.close_vault(&bumps)?;
+        Ok(())
     }
     pub fn transfer_back(&mut self,bumps:&DelistBumps)->Result<()>{
         let program=self.token_program.to_account_info();
@@ -57,7 +61,7 @@ impl<'info>Delist<'info>{
         let binding = self.marketplace.key();
         let seeds=&[
             b"listing",binding.as_ref(),
-            &[bumps.listing]
+            &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];
         let ctx=CpiContext::new_with_signer(program, accounts, signer_seeds);
@@ -70,7 +74,7 @@ impl<'info>Delist<'info>{
         let bindings=self.marketplace.key();
         let seeds=&[
             b"listing",bindings.as_ref(),
-            &[bumps.listing]
+            &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];
         let account=CloseAccount{

@@ -7,6 +7,7 @@ use crate::{marketplace, Listing, Marketplace, UserConfig};
 pub struct Purchase<'info>{
     #[account(mut)]
     pub taker:Signer<'info>,
+    #[account(mut)]
     pub maker:SystemAccount<'info>,
     pub mint:Account<'info,Mint>,
     #[account(
@@ -21,8 +22,8 @@ pub struct Purchase<'info>{
         associated_token::mint=mint
     )]
     pub taker_ata:Account<'info,TokenAccount>,
-
-    pub remaining_accounts:SystemAccount<'info>,
+    #[account(mut)]
+    pub authority:SystemAccount<'info>,
     #[account(
         mut,
         associated_token::authority=listing,
@@ -68,6 +69,11 @@ impl<'info>Purchase<'info>{
         Ok(())
     }
     pub fn transfer(&mut self,bumps:PurchaseBumps)->Result<()>{
+        msg!("amt is {}",self.vault.amount);
+        require!(
+    self.vault.amount >= 1,
+    ErrorCode::InsufficientVaultBalance
+);
         let program=self.token_program.to_account_info();
 
         let accounts=TransferChecked{
@@ -79,7 +85,7 @@ impl<'info>Purchase<'info>{
         let binding = self.marketplace.key();
         let seeds=&[
             b"listing",binding.as_ref(),
-            &[bumps.listing]
+            &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];
         let ctx=CpiContext::new_with_signer(program, accounts, signer_seeds);
@@ -103,7 +109,7 @@ impl<'info>Purchase<'info>{
         let fees=self.marketplace.platform_fees_percent/10000 * self.listing.price as u16;
         let accounts=Transfer{
             from:self.taker.to_account_info(),
-            to:self.remaining_accounts.to_account_info()
+            to:self.authority.to_account_info()
         };
         let ctx=CpiContext::new(program, accounts);
         transfer(ctx, fees as u64);
@@ -112,4 +118,10 @@ impl<'info>Purchase<'info>{
     }
 
 
+}
+
+#[error_code]
+pub enum ErrorCode {
+    #[msg("Vault does not contain sufficient tokens.")]
+    InsufficientVaultBalance,
 }

@@ -71,8 +71,9 @@ impl <'info>List<'info> {
             to:self.vault_mint.to_account_info()
         };
         let ctx=CpiContext::new(program, accounts);
-        transfer_checked(ctx, 1, 0);
+        transfer_checked(ctx, 1, 0)?;
         self.user_config.total_listed+=1;
+        msg!("amt is {}",self.vault_mint.amount);
 
         Ok(())
     }
