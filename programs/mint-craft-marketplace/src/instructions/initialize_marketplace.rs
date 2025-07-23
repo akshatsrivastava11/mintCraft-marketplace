@@ -18,13 +18,13 @@ pub struct InitializeMarketplace<'info>{
 }
 
 impl <'info>InitializeMarketplace<'info> {
-    pub fn initialize_marketplace(&mut self,fees:u16,bumps:initializeGlobalStateBumps)->Result<()>{
+    pub fn initialize_marketplace(&mut self,fees:u16,bumps:InitializeMarketplaceBumps)->Result<()>{
         self.marketplace.set_inner(Marketplace {
              authority:self.authority.key(),
               total_listing:0,
                total_sales: 0,
                 platform_fees_percent:fees,
-                 bump: bumps.global_state
+                 bump: bumps.marketplace
                  });
                  Ok(())
     }

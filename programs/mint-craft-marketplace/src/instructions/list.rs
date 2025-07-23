@@ -1,7 +1,7 @@
 use anchor_lang::{prelude::*, solana_program::secp256k1_recover::SECP256K1_SIGNATURE_LENGTH};
-use anchor_spl::token::{transfer_checked, Token, TokenAccount, TransferChecked};
+use anchor_spl::{associated_token::AssociatedToken, token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked}};
 
-use crate::{Listing, Marketplace};
+use crate::{Listing, Marketplace, UserConfig};
 
 #[derive(Accounts)]
 pub struct List<'info>{
@@ -31,11 +31,18 @@ pub struct List<'info>{
         init_if_needed,
         payer=maker,
         associated_token::mint=mint,
-        associated_token::authority=maker
+        associated_token::authority=listing
     )]
     pub  vault_mint:Account<'info,TokenAccount>,
+    #[account(
+        mut,
+        seeds=[b"user",maker.key().as_ref()],
+        bump
+    )]
+    pub user_config:Account<'info,UserConfig>,
     pub system_program:Program<'info,System>,
-    pub token_program:Program<'info,Token>
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>
 }
 
 //create the list
@@ -65,7 +72,7 @@ impl <'info>List<'info> {
         };
         let ctx=CpiContext::new(program, accounts);
         transfer_checked(ctx, 1, 0);
-        
+        self.user_config.total_listed+=1;
 
         Ok(())
     }

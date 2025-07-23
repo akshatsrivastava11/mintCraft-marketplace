@@ -6,3 +6,5 @@ pub use initialize_marketplace::*;
 pub use list::*;
 pub use delist::*;
 pub use purchase::*;
+pub mod initialize_user;
+pub use initialize_user::*;

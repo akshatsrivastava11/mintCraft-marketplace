@@ -1,7 +1,7 @@
 use anchor_lang::{prelude::*, system_program::{Transfer,transfer}};
 use anchor_spl::{associated_token::AssociatedToken, token::{ close_account, mint_to, transfer_checked, CloseAccount, Mint, MintTo, Token, TokenAccount, TransferChecked}, token_2022::spl_token_2022::extension::metadata_pointer::processor};
 
-use crate::{marketplace, Listing, Marketplace};
+use crate::{marketplace, Listing, Marketplace, UserConfig};
 
 #[derive(Accounts)]
 pub struct Purchase<'info>{
@@ -21,6 +21,8 @@ pub struct Purchase<'info>{
         associated_token::mint=mint
     )]
     pub taker_ata:Account<'info,TokenAccount>,
+
+    pub remaining_accounts:SystemAccount<'info>,
     #[account(
         mut,
         associated_token::authority=listing,
@@ -39,6 +41,18 @@ pub struct Purchase<'info>{
         bump
     )]
     pub listing:Account<'info,Listing>,
+    #[account(
+        mut,
+        seeds=[b"user",maker.key().as_ref()],
+        bump
+    )]
+    pub maker_config:Account<'info,UserConfig>,
+    #[account(
+        mut,
+        seeds=[b"user",taker.key().as_ref()],
+        bump
+    )]
+    pub taker_config:Account<'info,UserConfig>,
     pub system_program:Program<'info,System>,
     pub token_program:Program<'info,Token>,
     pub associated_token_program:Program<'info,AssociatedToken>,
@@ -47,19 +61,24 @@ pub struct Purchase<'info>{
 //transfer the nft from maker's ata to taker's ata
 //close the vault
 impl<'info>Purchase<'info>{
-    pub fn purchase(&mut self)->Result<()>{
+    pub fn purchase(&mut self,bumps:PurchaseBumps)->Result<()>{
+        self.transfer(bumps);
+        self.transferSol();
+        self.transferfees();
         Ok(())
     }
-    pub fn transfer(&mut self)->Result<()>{
+    pub fn transfer(&mut self,bumps:PurchaseBumps)->Result<()>{
         let program=self.token_program.to_account_info();
+
         let accounts=TransferChecked{
             from:self.vault.to_account_info(),
             to:self.taker_ata.to_account_info(),
             authority:self.listing.to_account_info(),
             mint:self.mint.to_account_info()
         };
+        let binding = self.marketplace.key();
         let seeds=&[
-            b"listing",self.marketplace.key().as_ref(),
+            b"listing",binding.as_ref(),
             &[bumps.listing]
         ];
         let signer_seeds=&[&seeds[..]];
@@ -74,13 +93,17 @@ impl<'info>Purchase<'info>{
             to:self.maker.to_account_info()
         };
         let ctx=CpiContext::new(program, accounts);
-        transfer(ctx, self.listing.price)
+        transfer(ctx, self.listing.price);
+        self.taker_config.total_buyed+=1;
+        self.maker_config.total_listed-=1;
+        Ok(())
     }
     pub fn transferfees(&mut self)->Result<()>{
+        let program=self.token_program.to_account_info();
         let fees=self.marketplace.platform_fees_percent/10000 * self.listing.price as u16;
         let accounts=Transfer{
             from:self.taker.to_account_info(),
-            to:AccountInfo(self.marketplace.authority)
+            to:self.remaining_accounts.to_account_info()
         };
         let ctx=CpiContext::new(program, accounts);
         transfer(ctx, fees as u64);

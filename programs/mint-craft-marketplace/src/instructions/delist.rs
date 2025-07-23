@@ -1,5 +1,7 @@
 use anchor_lang::{accounts::program, prelude::*};
-use anchor_spl::token::{close_account, transfer_checked, CloseAccount, TransferChecked};
+use anchor_spl::token::{close_account, transfer_checked, CloseAccount, Mint, Token, TokenAccount, TransferChecked};
+
+use crate::{Listing, Marketplace, UserConfig};
 
 #[derive(Accounts)]
 pub struct Delist<'info>{
@@ -27,6 +29,12 @@ pub struct Delist<'info>{
         associated_token::authority=listing
     )]
     pub  vault_mint:Account<'info,TokenAccount>,
+    #[account(
+        mut,
+        seeds=[b"user",maker.key().as_ref()],
+        bump
+    )]
+    pub user_config:Account<'info,UserConfig>,
     pub system_program:Program<'info,System>,
     pub token_program:Program<'info,Token>
 }
@@ -35,10 +43,10 @@ pub struct Delist<'info>{
 //closing the vault
 impl<'info>Delist<'info>{
     pub fn delist(&mut self,bumps:DelistBumps)->Result<()>{
-        self.transfer_back(bumps);
-        self.close_vault()
+        self.transfer_back(&bumps);
+        self.close_vault(&bumps)
     }
-    pub fn transfer_back(&mut self,bumps:DelistBumps)->Result<()>{
+    pub fn transfer_back(&mut self,bumps:&DelistBumps)->Result<()>{
         let program=self.token_program.to_account_info();
         let accounts=TransferChecked{
             authority:self.listing.to_account_info(),
@@ -46,19 +54,22 @@ impl<'info>Delist<'info>{
             mint:self.mint.to_account_info(),
             to:self.user_mint_ata.to_account_info()
         };
+        let binding = self.marketplace.key();
         let seeds=&[
-            b"listing",self.marketplace.key().as_ref(),
+            b"listing",binding.as_ref(),
             &[bumps.listing]
         ];
         let signer_seeds=&[&seeds[..]];
         let ctx=CpiContext::new_with_signer(program, accounts, signer_seeds);
         transfer_checked(ctx, 1, 0);
+        self.user_config.total_listed-=1;
         Ok(())
     }
-    pub fn close_vault(&mut self)->Result<()>{
+    pub fn close_vault(&mut self,bumps:&DelistBumps)->Result<()>{
         let program=self.token_program.to_account_info();
+        let bindings=self.marketplace.key();
         let seeds=&[
-            b"listing",self.marketplace.key().as_ref(),
+            b"listing",bindings.as_ref(),
             &[bumps.listing]
         ];
         let signer_seeds=&[&seeds[..]];
@@ -67,6 +78,7 @@ impl<'info>Delist<'info>{
             authority:self.listing.to_account_info(),
             destination:self.maker.to_account_info()
         };
+        let ctx=CpiContext::new_with_signer(program, account,signer_seeds);
         close_account(ctx);
         Ok(())
     }
