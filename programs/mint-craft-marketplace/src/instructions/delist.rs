@@ -59,8 +59,9 @@ impl<'info>Delist<'info>{
             to:self.user_mint_ata.to_account_info()
         };
         let binding = self.marketplace.key();
+        let binding2=self.maker.key();
         let seeds=&[
-            b"listing",binding.as_ref(),
+            b"listing",binding.as_ref(),binding2.as_ref(),
             &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];
@@ -72,8 +73,9 @@ impl<'info>Delist<'info>{
     pub fn close_vault(&mut self,bumps:&DelistBumps)->Result<()>{
         let program=self.token_program.to_account_info();
         let bindings=self.marketplace.key();
+        let binding2=self.maker.key();
         let seeds=&[
-            b"listing",bindings.as_ref(),
+            b"listing",bindings.as_ref(),binding2.as_ref(),
             &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];

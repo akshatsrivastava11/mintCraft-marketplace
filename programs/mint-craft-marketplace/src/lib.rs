@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("EMkdANp6YT1VosAemtoDxd4JV6hQEJSZeucxddajQSru");
+declare_id!("3yd3A95e8W6wsNaHe62F9W9oqeNLdhHwfgJohj11pdYj");
 
 #[program]
 pub mod mint_craft_marketplace {
