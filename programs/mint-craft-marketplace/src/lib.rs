@@ -21,8 +21,8 @@ pub mod mint_craft_marketplace {
   pub fn initialize_user(ctx:Context<InitializeUser>)->Result<()>{
     ctx.accounts.initialize_user(ctx.bumps)
   }
-  pub fn list(ctx:Context<List>,price:u64)->Result<()>{
-    ctx.accounts.list(price, ctx.bumps)
+  pub fn list(ctx:Context<List>,price:u64,id:u32)->Result<()>{
+    ctx.accounts.list(price,id,ctx.bumps)
   }
   pub fn delist(ctx:Context<Delist>)->Result<()>{
     ctx.accounts.delist(ctx.bumps)

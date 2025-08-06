@@ -14,7 +14,7 @@ pub struct Delist<'info>{
     pub marketplace:Account<'info,Marketplace>,
     #[account(
         mut,
-        seeds=[b"listing",marketplace.key().as_ref()],
+        seeds=[b"listing",marketplace.key().as_ref(),listing.id.to_le_bytes().as_ref(),maker.key().as_ref()],
         bump
     )]
     pub listing:Account<'info,Listing>,
@@ -60,8 +60,9 @@ impl<'info>Delist<'info>{
         };
         let binding = self.marketplace.key();
         let binding2=self.maker.key();
+        let binding3=self.listing.id.to_le_bytes();
         let seeds=&[
-            b"listing",binding.as_ref(),binding2.as_ref(),
+            b"listing",binding.as_ref(),binding3.as_ref(),binding2.as_ref(),
             &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];
@@ -72,10 +73,11 @@ impl<'info>Delist<'info>{
     }
     pub fn close_vault(&mut self,bumps:&DelistBumps)->Result<()>{
         let program=self.token_program.to_account_info();
-        let bindings=self.marketplace.key();
+         let binding = self.marketplace.key();
         let binding2=self.maker.key();
+        let binding3=self.listing.id.to_le_bytes();
         let seeds=&[
-            b"listing",bindings.as_ref(),binding2.as_ref(),
+            b"listing",binding.as_ref(),binding3.as_ref(),binding2.as_ref(),
             &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];

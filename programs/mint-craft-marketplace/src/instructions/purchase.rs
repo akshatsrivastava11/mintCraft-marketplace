@@ -38,7 +38,7 @@ pub struct Purchase<'info>{
     #[account(
         mut,
         close=maker,
-        seeds=[b"listing",marketplace.key().as_ref()],
+        seeds=[b"listing",marketplace.key().as_ref(),listing.id.to_le_bytes().as_ref(),maker.key().as_ref()],
         bump
     )]
     pub listing:Account<'info,Listing>,
@@ -82,9 +82,11 @@ impl<'info>Purchase<'info>{
             authority:self.listing.to_account_info(),
             mint:self.mint.to_account_info()
         };
-        let binding = self.marketplace.key();
+            let binding = self.marketplace.key();
+        let binding2=self.maker.key();
+        let binding3=self.listing.id.to_le_bytes();
         let seeds=&[
-            b"listing",binding.as_ref(),
+            b"listing",binding.as_ref(),binding3.as_ref(),binding2.as_ref(),
             &[self.listing.bump]
         ];
         let signer_seeds=&[&seeds[..]];

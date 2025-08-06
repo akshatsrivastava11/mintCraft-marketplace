@@ -4,6 +4,7 @@ use anchor_spl::{associated_token::AssociatedToken, token::{transfer_checked, Mi
 use crate::{Listing, Marketplace, UserConfig};
 
 #[derive(Accounts)]
+#[instruction(price:u64,id:u32)]
 pub struct List<'info>{
     #[account(mut)]
     pub maker:Signer<'info>,
@@ -16,7 +17,7 @@ pub struct List<'info>{
         init,
         payer=maker,
         space=8+Listing::INIT_SPACE,
-        seeds=[b"listing",marketplace.key().as_ref(),maker.key().as_ref()],
+        seeds=[b"listing",marketplace.key().as_ref(),id.to_le_bytes().as_ref(),maker.key().as_ref()],
         bump
     )]
     pub listing:Account<'info,Listing>,
@@ -48,17 +49,18 @@ pub struct List<'info>{
 //create the list
 //transfer the nft to the vault
 impl <'info>List<'info> {
-    pub fn list(&mut self,price:u64,bumps:ListBumps)->Result<()>{
-        self.create_list(price, bumps);
+    pub fn list(&mut self,price:u64,id:u32,bumps:ListBumps)->Result<()>{
+        self.create_list(price,id,bumps);
         self.transfer_nft();
         Ok(())
     }
-    pub fn create_list(&mut self,price:u64,bumps:ListBumps)->Result<()>{
+    pub fn create_list(&mut self,price:u64,id:u32,bumps:ListBumps)->Result<()>{
         self.listing.set_inner(Listing { 
             maker: self.maker.key(),
              mint: self.mint.key(),
               price,
-               bump:bumps.listing
+               bump:bumps.listing,
+               id:id
              });
         Ok(())
     }
