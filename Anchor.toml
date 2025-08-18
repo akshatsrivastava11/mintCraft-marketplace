@@ -12,7 +12,7 @@ mint_craft_marketplace = "3yd3A95e8W6wsNaHe62F9W9oqeNLdhHwfgJohj11pdYj"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
